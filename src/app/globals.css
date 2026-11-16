@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta inspirada en Essentials: neutros apagados, negro suave, sin colores fuertes.
+     (Los nombres quedaron del tema anterior: ink = fondo, cream = texto, ember = botones.) */
+  --color-ink: #eee9e2;        /* fondo avena */
+  --color-coal: #e6dfd5;       /* tarjetas y paneles */
+  --color-surface: #ddd4c8;    /* fondo de fotos y chips */
+  --color-line: #cfc6b9;       /* bordes */
+  --color-cream: #1e1c1a;      /* texto: negro suave */
+  --color-bone: #e3dbcf;       /* sección de looks */
+  --color-muted: #6e655b;      /* texto secundario (contraste AA) */
+  --color-ember: #1e1c1a;      /* botones principales */
+  --color-ember-soft: #3b3732; /* hover de botones */
+  --color-taupe: #9a8a76;      /* único acento */
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-sway: sway 6s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-0.8deg); }
+  50% { transform: rotate(0.8deg); }
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+    color: var(--color-cream);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: var(--color-ember);
+    color: var(--color-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ember);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Título en bloque, el mismo estilo del logo */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-stretch: 112%;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 0.95;
+  }
+  .label {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  .grain {
+    position: relative;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.07;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

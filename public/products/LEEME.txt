@@ -1,0 +1,27 @@
+Poné acá las fotos de los productos (modo demo, sin Supabase).
+
+Nombres:
+  <producto>-<vista>.jpg            → la usa para todos los colores
+  <producto>-<color>-<vista>.jpg    → solo para ese color
+
+Vistas: front (frente), back (espalda), model (con modelo), detail (detalle)
+Formatos: jpg, jpeg, png o webp
+
+Ejemplos:
+  polo-dept-front.webp              (prenda sola, sin fondo → perchero)
+  polo-dept-model.jpg               (puesta → catálogo y al elegir talle)
+  polo-dept-model-2.jpg             (otra foto puesta)
+  musculosa-rib-negro-model.jpg     (solo para el color Negro)
+
+Productos: sweater-cuadros, jean-vintage, camisa-dsgn, short-tierra,
+polo-dept, buzo-rayado, musculosa-rib, sweater-rosa, campera-work,
+musculosa-cold, bermuda-cargo
+
+Colores en el nombre: en minúscula, sin tildes y con guiones
+(ej: "Negro lavado" → negro-lavado)
+
+Tip: fotos de la prenda sola con fondo transparente (PNG) quedan
+mucho mejor en el perchero. Si una prenda no tiene foto, se muestra
+la ilustración en su color.
+
+Con Supabase conectado, las fotos se suben desde /admin.
