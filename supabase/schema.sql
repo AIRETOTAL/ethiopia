@@ -266,3 +266,5 @@ create policy "fotos admin subir" on storage.objects for insert to authenticated
 drop policy if exists "fotos admin borrar" on storage.objects;
 create policy "fotos admin borrar" on storage.objects for delete to authenticated
   using (bucket_id = 'products' and public.is_admin());
+
+-- Refuerzos de seguridad adicionales: ver security.sql

@@ -19,17 +19,31 @@ function refresh() {
   revalidatePath("/", "layout");
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
 export async function updateStock(variantId: string, stock: number) {
+  if (!UUID.test(variantId) || !Number.isFinite(stock)) throw new Error("Datos inválidos");
   const supabase = await adminClient();
-  const value = Math.max(0, Math.floor(stock));
+  const value = Math.min(100000, Math.max(0, Math.floor(stock)));
   const { error } = await supabase.from("product_variants").update({ stock: value }).eq("id", variantId);
   if (error) throw new Error(error.message);
   refresh();
 }
 
 export async function updateProduct(productId: string, fields: { price?: number; active?: boolean; featured?: boolean }) {
+  if (!UUID.test(productId)) throw new Error("Datos inválidos");
+  // solo se aceptan estos tres campos, con su tipo correcto
+  const safe: { price?: number; active?: boolean; featured?: boolean } = {};
+  if (fields.price !== undefined) {
+    if (!Number.isFinite(fields.price) || fields.price < 0 || fields.price > 100_000_000) throw new Error("Precio inválido");
+    safe.price = Math.round(fields.price);
+  }
+  if (typeof fields.active === "boolean") safe.active = fields.active;
+  if (typeof fields.featured === "boolean") safe.featured = fields.featured;
   const supabase = await adminClient();
-  const { error } = await supabase.from("products").update(fields).eq("id", productId);
+  const { error } = await supabase.from("products").update(safe).eq("id", productId);
   if (error) throw new Error(error.message);
   refresh();
 }
@@ -55,23 +69,36 @@ export interface CreateState {
 export async function createProduct(_prev: CreateState, form: FormData): Promise<CreateState> {
   try {
     const supabase = await adminClient();
-    const name = String(form.get("name") ?? "").trim();
+    const name = String(form.get("name") ?? "").trim().slice(0, 80);
     const categorySlug = String(form.get("category"));
     const kind = String(form.get("kind"));
-    const price = Number(form.get("price"));
-    const stock = Math.max(0, Number(form.get("stock") ?? 0));
+    const price = Math.round(Number(form.get("price")));
+    const stock = Math.min(100000, Math.max(0, Math.floor(Number(form.get("stock") ?? 0)) || 0));
+    if (!["tee", "hoodie", "jacket", "pants", "shorts"].includes(kind)) return { ok: false, message: "Tipo de prenda inválido." };
+    if (!Number.isFinite(price) || price <= 0 || price > 100_000_000) return { ok: false, message: "Precio inválido." };
     const colors = String(form.get("colors") ?? "")
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean)
+      .slice(0, 12)
       .map((c) => {
         const [colorName, hex] = c.split(":").map((x) => x.trim());
-        return { name: colorName, hex: /^#[0-9a-f]{6}$/i.test(hex ?? "") ? hex : "#888888" };
+        return { name: colorName.slice(0, 40), hex: /^#[0-9a-f]{6}$/i.test(hex ?? "") ? hex : "#888888" };
       });
     const sizes = String(form.get("sizes") ?? "")
       .split(",")
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean);
+      .map((s) => s.trim().toUpperCase().slice(0, 6))
+      .filter(Boolean)
+      .slice(0, 12);
+
+    // las fotos se revisan antes de crear nada
+    for (const key of ["image_front", "image_model"]) {
+      const f = form.get(key);
+      if (f instanceof File && f.size > 0) {
+        if (!IMAGE_TYPES[f.type]) return { ok: false, message: "Las fotos tienen que ser JPG, PNG o WEBP." };
+        if (f.size > MAX_IMAGE_BYTES) return { ok: false, message: "Cada foto puede pesar hasta 5 MB." };
+      }
+    }
 
     if (!name || !price || colors.length === 0 || sizes.length === 0) {
       return { ok: false, message: "Completá nombre, precio, al menos un color y un talle." };
@@ -88,13 +115,15 @@ export async function createProduct(_prev: CreateState, form: FormData): Promise
         kind,
         gender: ["hombre", "mujer"].includes(String(form.get("gender"))) ? String(form.get("gender")) : "unisex",
         price,
-        description: String(form.get("description") ?? ""),
+        description: String(form.get("description") ?? "").slice(0, 2000),
         details: String(form.get("details") ?? "")
           .split("\n")
           .map((d) => d.trim())
-          .filter(Boolean),
-        fabric: String(form.get("fabric") ?? ""),
-        fit: String(form.get("fit") ?? ""),
+          .filter(Boolean)
+          .slice(0, 12)
+          .map((d) => d.slice(0, 200)),
+        fabric: String(form.get("fabric") ?? "").slice(0, 300),
+        fit: String(form.get("fit") ?? "").slice(0, 300),
         featured: form.get("featured") === "on",
       })
       .select("id, slug")
@@ -115,7 +144,8 @@ export async function createProduct(_prev: CreateState, form: FormData): Promise
     if (model instanceof File && model.size > 0) uploads.push({ file: model, view: "model" });
 
     for (const [i, u] of uploads.entries()) {
-      const ext = u.file.name.split(".").pop() ?? "png";
+      // la extensión sale del tipo real del archivo, no del nombre que puso el usuario
+      const ext = IMAGE_TYPES[u.file.type];
       const path = `${product.slug}/${u.view}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("products").upload(path, u.file, { contentType: u.file.type });
       if (upErr) return { ok: false, message: `Producto creado, pero falló la foto: ${upErr.message}` };

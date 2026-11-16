@@ -96,7 +96,7 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              minLength={6}
+              minLength={8}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               className="h-12 rounded-md border border-line bg-coal px-3 text-sm outline-none focus:border-cream"
             />
